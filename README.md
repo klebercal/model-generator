@@ -6,8 +6,8 @@ Generates model classes (with getters and setters) to use as an abstraction laye
 Requirements
 ============
 
-    PHP >= 5.3 [http://php.net/]
-    PHP Command Line Interface [http://www.php-cli.com/]
+* PHP >= 5.3 [http://php.net/]
+* PHP Command Line Interface [http://www.php-cli.com/]
 
 
 Usage
@@ -62,6 +62,5 @@ $schema = array(
 More Information
 ================
 
-Copyright (c) 2013 Kleber C Batista (klebercal@gmail.com)
-
+Copyright (c) 2013 Kleber C Batista (klebercal@gmail.com)                             
 This project is licensed under the "GNU GPLv3" license (see LICENSE.txt).
