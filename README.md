@@ -6,8 +6,8 @@ Generates model classes (with getters and setters) to use as an abstraction laye
 Requirements
 ============
 
-PHP >= 5.3 [http://php.net/]
-PHP Command Line Interface [http://www.php-cli.com/]
+    PHP >= 5.3 [http://php.net/]
+    PHP Command Line Interface [http://www.php-cli.com/]
 
 
 Usage
@@ -38,6 +38,7 @@ The file name doesn't matter at all: you will have to specify it on the command 
 
 The only obligatory thing is that it must have a variable named $schema, which contains the array that abstracts your model, according to the example:
 
+```
 $schema = array(
     'Cars' => array(
         'id',
@@ -55,10 +56,12 @@ $schema = array(
         'updated_at',
     )
 );
+```
 
 
 More Information
 ================
 
 Copyright (c) 2013 Kleber C Batista (klebercal@gmail.com)
+
 This project is licensed under the "GNU GPLv3" license (see LICENSE.txt).
