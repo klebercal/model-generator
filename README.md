@@ -1,4 +1,4 @@
-doctrine2-odm-model-generator
-=============================
+Moodel Generator
+================
 
-A simple model generator for Doctrine2 MongoDB ODM
+Generates model classes (with getters and setters) to use as an abstraction layer.
