@@ -5,10 +5,10 @@
  * @version 0.1
  *
  * Generates model classes (with getters and setters) to use as an abstraction layer.
- * Check the README.md file for usage examples end mor information.
+ * Check the README.md file for usage examples and more information.
  *
- * @author Kleber C Batista <klebercal@gmail.com>
- * @link https://github.com/klebercal/model-generator
+ * @author  Kleber C Batista <klebercal@gmail.com>
+ * @link    https://github.com/klebercal/model-generator
  * @license http://www.gnu.org/licenses/gpl.txt
  *
  * REQUIRES: 
