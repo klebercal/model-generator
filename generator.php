@@ -2,7 +2,7 @@
 
 /**
  * Model Generator
- * @version 0.1
+ * @version 0.3
  *
  * Generates model classes (with getters and setters) to use as an abstraction layer.
  * Check the README.md file for usage examples and more information.
@@ -38,33 +38,35 @@ define('TRM_FEW_ARGUMENTS'   , 2);
 define('TRM_HELP_REQUEST'    , 3);
 define('TRM_INVALID_FILENAME', 4);
 define('TRM_INVALID_OPTION'  , 5);
-define('TRM_INVALID_SCHEMA'  , 6);
-define('TRM_MALFORMED_SCHEMA', 7);
+define('TRM_INVALID_MODEL'  , 6);
+define('TRM_MALFORMED_MODEL', 7);
 define('TRM_MISSING_FILE'    , 8);
 define('TRM_MISSING_FILENAME', 9);
-define('TRM_MISSING_SCHEMA'  , 10);
+define('TRM_MISSING_MODEL'  , 10);
 define('TRM_SYNTAX_ERRORS'   , 11);
 define('TRM_UNKNOWN_COMMAND' , 12);
 define('TRM_UNKNOWN_OPTION'  , 13);
 
 
-// Checks the command arguments and gets the schema file
+// Checks the command arguments and gets the model file
 $file = check();
-// Now validates the schema within the file
-$schema = validate($file);
-// Generates the models specified on the schema file
-generate($schema);
+// Now validates the model within the file
+$model = validate($file);
+// Generates the models specified on the model file
+generate($model);
 // Greetings!
 terminate(TRM_DONE_THANKS);
 
 /**
  * Checks the argumments passed down to the command
+ *
+ * @todo Implement a path for the model file, so generator can run centralized
  */
 function check()
 {
     global $argc, $argv;
 
-    if(!preg_match("/^(-{1}[hs]|-{2}(help|schema-file))$/", $argv[1])) {
+    if($argc > 1 && !preg_match("/^(-{1}[hm]|-{2}(help|model-file))$/", $argv[1])) {
         terminate(TRM_UNKNOWN_OPTION);
     }
 
@@ -76,7 +78,7 @@ function check()
         case 2:
             if(preg_match("/^(-{1}h|-{2}help)$/", $argv[1])) {
                 terminate(TRM_HELP_REQUEST);
-            } elseif(preg_match("/^(-{1}s|-{2}schema-file)$/", $argv[1])) {
+            } elseif(preg_match("/^(-{1}s|-{2}model-file)$/", $argv[1])) {
                 terminate(TRM_MISSING_FILENAME);
             } else {
                 terminate(TRM_UNKNOWN_COMMAND);
@@ -84,7 +86,7 @@ function check()
         break;
 
         case 3:
-            if (preg_match("/^(-{1}s|-{2}schema-file)$/", $argv[1])) {
+            if (preg_match("/^(-{1}m|-{2}model-file)$/", $argv[1])) {
                 if(preg_match("/^[A-Za-z0-9._-]+\.(php)$/", $argv[2])) {
                     return $argv[2];
                 } else {
@@ -102,47 +104,48 @@ function check()
 }
 
 /**
- * Validates the file and the defined schema
+ * Validates the file and the defined model
  */
 function validate($file)
 {
     // Checks if file exists
     if(!file_exists($file)) terminate(TRM_MISSING_FILE);
-    // Checks for syntax errors on the schema file
+    // Checks for syntax errors on the model file
     exec("php -l $file 2>&1", $output, $status);
     if($status !== 0) terminate(TRM_SYNTAX_ERRORS);
     // Finally requires the file
     require $file;
     
-    // Checks if the var "$schema" was defined
-    if(!isset($schema)) terminate(TRM_MISSING_SCHEMA);
-    // Checks if the var "$schema" is an array
-    if(!is_array($schema)) terminate(TRM_INVALID_SCHEMA);
+    // Checks if the var "$model" was defined
+    if(!isset($model)) terminate(TRM_MISSING_MODEL);
+    // Checks if the var "$model" is an array
+    if(!is_array($model)) terminate(TRM_INVALID_MODEL);
 
     // Right. Now let's see if the array is correctly formed
-    foreach($schema as $class_name => $class_info) {
+    foreach($model as $class_name => $class_info) {
         if(!array($class_info)) {
-            terminate(TRM_MALFORMED_SCHEMA, "Class $class_name information must be an array");
+            terminate(TRM_MALFORMED_MODEL, "Class $class_name information must be an array");
         }
     }
 
-    return $schema;
+    return $model;
 }
 
 /**
  * Generates the models
  * v0.1 - Support for plain PHP arrays
+ * v0.2 - Added support for related objects (or embedded documents)
+ * v0.3 - Added support to one-to-many embedded documents
  *
  * @todo Add YAML support
  * @todo Add JSON support
  * @todo Add native type support and validation on getters and setters
  */
-function generate($schema)
+function generate($model)
 {
-    // Awesome! Now just read the schema and write the model files
-    foreach($schema as $class_name => $class_props) {
-        $class_name = camelize($class_name);
-
+    // Awesome! Now just read the model and write the model files
+    foreach($model as $class_name => $class_props) {
+        print "generator: Writing model '$class_name'...";
         // Generates the header and the CLASS syntax
         $header = <<<HEADER
 <?php
@@ -155,7 +158,7 @@ function generate($schema)
  *
  * @author Kleber C Batista <klebercal@gmail.com>
  * @license http://www.gnu.org/licenses/gpl.txt
- * @version 0.1
+ * @version 0.3
  */
 class $class_name 
 {
@@ -165,26 +168,43 @@ HEADER;
         $methods    = array();
 
         foreach($class_props as $prop_name) {
-            // Generates the property declaration
-            $properties[] = <<<PROPS
-    /** $prop_name */
-    private \$$prop_name;
-PROPS;
+            // Checks if the property is a related one-to-many object
+            $one_to_many = false;
+            if(strpos($prop_name, '*') === 0) {
+                $one_to_many = true;
+                $prop_name = substr($prop_name, 1);
+            }
 
-            $method_name = camelize($prop_name);
+            // Checks if the property is a related object (or embedded document)
+            $related_embedded = array_key_exists($prop_name, $model) ? true : false;
+
+            // Generates the property declaration
+            $annotation  = ($related_embedded ? "Embedded " : "") . $prop_name;
+            $prop_syntax = $one_to_many ? "\$$prop_name = array()" : "\$$prop_name";
+            $properties[] = <<<PROPS
+    /** $annotation */
+    private $prop_syntax;
+PROPS;
+            // Only camelizes properties that are not related-embedded
+            $method_name = $related_embedded ? $prop_name : camelize($prop_name);
 
             // Generates the SETTER method syntax
+            $annotation = "Setter method for" . ($related_embedded ? " Embedded" : "") . " '$prop_name'";
+            $set_syntax = $one_to_many ? "\$this->{$prop_name}[] = \$$prop_name" : "\$this->$prop_name = \$$prop_name";
+            $typehint   = $related_embedded ? "$prop_name " : '';
+
             $methods[] = <<<SETTER
-    /** Setter method for '$prop_name' */
-    public function set$method_name(\$$prop_name) 
+    /** $annotation */
+    public function set$method_name($typehint\$$prop_name) 
     {
-        \$this->$prop_name = \$$prop_name;
+        $set_syntax;
     }
 SETTER;
 
             // Generates the GETTER method syntax
+            $annotation = "Getter method for" . ($related_embedded ? " Embedded" : "") . " '$prop_name'";
             $methods[] = <<<GETTER
-    /** Getter method for '$prop_name' */
+    /** $annotation */
     public function get$method_name() 
     {
         return \$this->$prop_name;
@@ -204,6 +224,9 @@ FOOTER;
 
         // Writes the file
         file_put_contents("$class_name.class.php", "$header\n$properties\n\n$methods\n$footer", LOCK_EX);
+        
+        // Done!
+        print " done!\n";
     }
 }
 
@@ -223,7 +246,7 @@ function terminate($code, $extra=null)
     $out = '';
     switch($code) {
         case TRM_DONE_THANKS:
-            $out.= "$self Done! Thanks for using!";
+            $out.= "$self Thanks for using!";
         break;
 
         case TRM_FEW_ARGUMENTS:
@@ -242,28 +265,28 @@ function terminate($code, $extra=null)
             $out.= "$self Invalid option '{$argv[1]}'.\n$help.";
         break;
 
-        case TRM_INVALID_SCHEMA:
-            $out.= "$self The variable \$schema MUST BE an array.";
+        case TRM_INVALID_MODEL:
+            $out.= "$self The variable \$model MUST BE an array.";
         break;
 
         case TRM_MISSING_FILE:
-            $out.= "$self The schema file you informed ({$argv[2]}) does not exist.";
+            $out.= "$self The model file you informed ({$argv[2]}) does not exist.";
         break;
 
-        case TRM_MALFORMED_SCHEMA:
-            $out.= "$self The schema has an error: $extra.";
+        case TRM_MALFORMED_MODEL:
+            $out.= "$self The model has an error: $extra.";
         break;
 
         case TRM_MISSING_FILENAME:
-            $out.= "$self Missing schema file name.\n$help.";
+            $out.= "$self Missing model file name.\n$help.";
         break;
 
-        case TRM_MISSING_SCHEMA:
-            $out.= "$self The schema was not defined on the file you informed ({$argv[2]}).";
+        case TRM_MISSING_MODEL:
+            $out.= "$self The model was not defined on the file you informed ({$argv[2]}).";
         break;
 
         case TRM_SYNTAX_ERRORS:
-            $out.= "$self Syntax errors were found on the schema file ({$argv[2]}).";
+            $out.= "$self Syntax errors were found on the model file ({$argv[2]}).";
         break;
 
         case TRM_UNKNOWN_COMMAND:
@@ -286,15 +309,15 @@ function terminate($code, $extra=null)
 function help()
 {
     $help = <<<EOT
-Model Generator - Version 0.1
+Model Generator - Version 0.3
 -----------------------------
 Generates model classes (with getters and setters) to use as an abstraction layer.
-USAGE: php generator.php [OPTIONS] [SCHEMA_FILE]
+USAGE: php generator.php [OPTIONS] [model_FILE]
 
     Available OPTIONS:
 
     -h, --help          Shows this help screen
-    -s, --schema-file   Provides the file that holds the schema information (must be a .php file)
+    -m, --model-file   Provides the file that holds the model information (must be a .php file)
     
 More info: <https://github.com/klebercal/model-generator>
 Report bugs to: <klebercal@gmail.com>
