@@ -13,19 +13,14 @@ Requirements
 Usage
 =====
 
-Get the code.
-
-You have to put the file generator.php into the directory where you want your classes (or anywhere in your filesystem where you can generate and then move the generated files).
-
-Open your terminal (linux users, as I still did not tested on Windows\Macintosh plataforms).
-Go to the folder where you put 'generator.php'.
-
-Run 'php generator.php --schema-file FILE\_NAME.php' (OR 'php generator.php -s FILE_NAME.php')
+* Get the code...
+* Create a symbolic link (on *nix) to the file 'generator.php' into the directory where you want your model classes to be generated.
+* Or simply copy 'generator.php' anywhere in your filesystem (some folder where you can generate and then move the generated files).
+* Open your terminal (*nix users, as I still did not tested on Windows\Mac plataforms). 
+* Run 'php generator.php --schema-file FILE\_NAME.php' (OR 'php generator.php -s FILE_NAME.php')
+* You have to specify your model abstraction on an external file. See below for instructions.
 
 For help and more information, run 'php generator.php --help' (OR 'php generator.php -h')
-
-You have to specify your model abstraction on an external file. 
-See below for instructions.
 
 
 Model Abstraction
@@ -57,6 +52,26 @@ $schema = array(
     )
 );
 ```
+If you use related objects (or embedded documents), just name the property with the same name of the related-embedded class:
+
+```
+$schema = array(
+    'Cars' => array(
+        'id',
+        'Manufacturer',
+        'name',
+        'motor',
+        'created_at',
+        'updated_at',
+    ),
+    'Manufacturer' => array(
+        'id',
+        'name',
+        'country',
+        'created_at',
+        'updated_at',
+    )
+);
 
 
 More Information

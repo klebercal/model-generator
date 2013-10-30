@@ -145,7 +145,6 @@ function generate($model)
 {
     // Awesome! Now just read the model and write the model files
     foreach($model as $class_name => $class_props) {
-        print "generator: Writing model '$class_name'...";
         // Generates the header and the CLASS syntax
         $header = <<<HEADER
 <?php
@@ -224,9 +223,9 @@ FOOTER;
 
         // Writes the file
         file_put_contents("$class_name.class.php", "$header\n$properties\n\n$methods\n$footer", LOCK_EX);
-        
+
         // Done!
-        print " done!\n";
+        print "generator: Class '{$class_name}' written in file '{$class_name}.class.php'\n";
     }
 }
 
@@ -246,7 +245,7 @@ function terminate($code, $extra=null)
     $out = '';
     switch($code) {
         case TRM_DONE_THANKS:
-            $out.= "$self Thanks for using!";
+            $out.= "\n$self Done! Thanks for using!";
         break;
 
         case TRM_FEW_ARGUMENTS:
