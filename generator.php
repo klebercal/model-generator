@@ -269,11 +269,14 @@ function base_class($name, array $props)
         $properties[] = class_prop($prop_name, $is_embedded, $is_1_to_N);
         $methods[]    = class_prop_setter($prop_name, $is_embedded, $is_1_to_N);
         $methods[]    = class_prop_getter($prop_name, $is_embedded);
-
-        // Generates the class footer
-        $footer = class_footer($name, true);
-
     }
+    // Generates the class 'toArray' method
+    $methods[] = class_to_array();
+
+    // Generates the class footer
+    $footer = class_footer($name, true);
+
+    // Writes the class file
     write_class($name, $header, $footer, true, $methods, $properties);
 }
 
@@ -404,7 +407,7 @@ function class_prop($prop_name, $is_embedded, $is_1_to_N)
 
     return <<<PROP
     /** $annotation */
-    private $syntax;
+    protected $syntax;
 PROP;
 }
 
@@ -457,6 +460,52 @@ function class_prop_getter($prop_name, $is_embedded)
         return \$this->$prop_name;
     }
 GETTER;
+}
+
+/**
+ * Generates the code of a method to convert the object to array
+ *
+ * v0.4 - Implemented using syntax compatible with PHP >= 5.2
+ */
+function class_to_array()
+{
+    return <<<TOARRAY
+    /** Converts this object to array */
+    public function toArray() 
+    {
+        \$func_args = '\$data, \$callback';
+        \$func_code = 
+            '
+            \$array = array();
+            switch(gettype(\$data)) {
+                case "object":
+                    \$array = \$data->toArray();
+                break;
+                
+                case "array":
+                    foreach(\$data as \$key => \$items) {
+                        \$array[\$key] = \$callback(\$items, \$callback);
+                    }
+                break;
+
+                default:               
+                    \$array = \$data;
+                break;
+            }
+            return \$array;
+            ';
+
+        \$function = create_function(\$func_args, \$func_code);
+
+        \$array = array();
+
+        foreach(\$this as \$key => \$data) {
+            \$array[\$key] = \$function(\$data, \$function);
+        }
+
+        return \$array;
+    }
+TOARRAY;
 }
 
 /**
